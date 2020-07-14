@@ -460,7 +460,7 @@ if __name__ == '__main__':
         dist.init_process_group(backend='nccl', init_method='env://')  # distributed backend
         
         opt.world_size = dist.get_world_size()
-        assert opt.batch_size % opt.world_size == 0
+        assert opt.batch_size % opt.world_size == 0, "Batch size is not a multiple of the number of devices given!"
         opt.batch_size = opt.total_batch_size // opt.world_size
     print(opt)
 
