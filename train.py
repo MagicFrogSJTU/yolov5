@@ -449,9 +449,9 @@ if __name__ == '__main__':
     opt.img_size.extend([opt.img_size[-1]] * (2 - len(opt.img_size)))  # extend to 2 sizes (train, test)
     device = torch_utils.select_device(opt.device, apex=mixed_precision, batch_size=opt.batch_size)
     opt.total_batch_size = opt.batch_size
+    opt.world_size = 1
     if device.type == 'cpu':
         mixed_precision = False
-        opt.world_size = 1
     elif opt.local_rank != -1:
         # DDP mode
         assert torch.cuda.device_count() > opt.local_rank
