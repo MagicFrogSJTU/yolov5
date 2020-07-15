@@ -70,7 +70,7 @@ def train(hyp, tb_writer, opt, device):
     # Since I see lots of print here, the logging configuration is skipped here. We may see repeated outputs.
 
     # Configure
-    init_seeds(1)
+    init_seeds(2+local_rank)
     with open(opt.data) as f:
         data_dict = yaml.load(f, Loader=yaml.FullLoader)  # model dict
     train_path = data_dict['train']
@@ -208,18 +208,20 @@ def train(hyp, tb_writer, opt, device):
     model.names = names
 
     # Class frequency
-    labels = np.concatenate(dataset.labels, 0)
-    c = torch.tensor(labels[:, 0])  # classes
-    # cf = torch.bincount(c.long(), minlength=nc) + 1.
-    # model._initialize_biases(cf.to(device))
-    plot_labels(labels, save_dir=log_dir)
-    if tb_writer:
-        tb_writer.add_hparams(hyp, {})
-        tb_writer.add_histogram('classes', c, 0)
+    # Only one check and log is needed.
+    if local_rank in [-1, 0]:
+        labels = np.concatenate(dataset.labels, 0)
+        c = torch.tensor(labels[:, 0])  # classes
+        # cf = torch.bincount(c.long(), minlength=nc) + 1.
+        # model._initialize_biases(cf.to(device))
+        plot_labels(labels, save_dir=log_dir)
+        if tb_writer:
+            tb_writer.add_hparams(hyp, {})
+            tb_writer.add_histogram('classes', c, 0)
 
-    # Check anchors
-    if not opt.noautoanchor:
-        check_anchors(dataset, model=model, thr=hyp['anchor_t'], imgsz=imgsz)
+        # Check anchors
+        if not opt.noautoanchor:
+            check_anchors(dataset, model=model, thr=hyp['anchor_t'], imgsz=imgsz)
 
     # Start training
     t0 = time.time()
@@ -460,8 +462,6 @@ if __name__ == '__main__':
         dist.init_process_group(backend='nccl', init_method='env://')  # distributed backend
         
         opt.world_size = dist.get_world_size()
-        assert opt.world_size <= 2, \
-            "DDP mode with > 2 gpus will suffer from performance deterioration. The reason remains unknown!"
         assert opt.batch_size % opt.world_size == 0, "Batch size is not a multiple of the number of devices given!"
         opt.batch_size = opt.total_batch_size // opt.world_size
     print(opt)
