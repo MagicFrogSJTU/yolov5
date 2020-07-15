@@ -208,14 +208,14 @@ def train(hyp, tb_writer, opt, device):
     model.names = names
 
     # Class frequency
+    labels = np.concatenate(dataset.labels, 0)
+    c = torch.tensor(labels[:, 0])  # classes
+    # cf = torch.bincount(c.long(), minlength=nc) + 1.
+    # model._initialize_biases(cf.to(device))
+    plot_labels(labels, save_dir=log_dir)
     if tb_writer:
-        labels = np.concatenate(dataset.labels, 0)
-        c = torch.tensor(labels[:, 0])  # classes
-        # cf = torch.bincount(c.long(), minlength=nc) + 1.
-        # model._initialize_biases(cf.to(device))
-        plot_labels(labels)
+        tb_writer.add_hparams(hyp, {})
         tb_writer.add_histogram('classes', c, 0)
-
 
     # Check anchors
     if not opt.noautoanchor:
